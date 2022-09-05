@@ -34,7 +34,7 @@ public class ChatServer {
             String name = reader.readLine();
             userName.add(name);
 
-            toAllClients(writer, reader, name);
+            toAllClients(reader, name);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -46,16 +46,13 @@ public class ChatServer {
         }
     }
 
-    private static void toAllClients(Writer writer, BufferedReader reader, String name) {
+    private static void toAllClients(BufferedReader reader, String name) {
         try {
             while (true) {
                 String line = reader.readLine();
                 if (line == null) break;
                 if (line.isBlank()) continue;
                 System.out.println(userName.get(userName.lastIndexOf(name)) + ": " + line);
-                writer.write(userName.get(userName.lastIndexOf(name)) + ": " + line);
-                writer.write("\n");
-                writer.flush();
             }
         } catch (IOException e) {
             e.printStackTrace();
