@@ -20,7 +20,7 @@ public class NewClient {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         while (true) {
             String line = reader.readLine();
-            writer.write(line+"\n");
+            writer.write(line + "\n");
             writer.flush();
         }
     }
@@ -31,6 +31,7 @@ public class NewClient {
             while (true) {
                 String line = reader.readLine();
                 if (line == null) break;
+                if (line.isBlank()) continue;
                 System.out.println(line);
             }
         } catch (IOException e) {

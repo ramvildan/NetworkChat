@@ -28,11 +28,12 @@ public class ChatServer {
             Writer writer = new OutputStreamWriter(client.getOutputStream());
             BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
-            greetingsToAll(client);
+            greetingsToAll(writer);
 
             userName = reader.readLine();
 
-            toAllClients(reader, userName);
+            sendMessage(reader, writer, userName);
+
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -45,19 +46,22 @@ public class ChatServer {
         }
     }
 
-    private static void greetingsToAll(Socket client) throws IOException {
-        Writer writeGreeting = new OutputStreamWriter(client.getOutputStream());
-        writeGreeting.write("Hello and welcome to MyChat! Please enter your name: " +"\n");
-        writeGreeting.flush();
+    private static void greetingsToAll(Writer writer) throws IOException {
+        writer.write("Hello and welcome to MyChat! Please enter your name: " + "\n");
+        writer.flush();
     }
 
-    private static void toAllClients(BufferedReader reader, String userName) {
+    private static void sendMessage(BufferedReader reader, Writer writer, String userName) {
         try {
-            while (true) {
-                String line = reader.readLine();
-                if (line == null) break;
-                if (line.isBlank()) continue;
-                System.out.println(userName + ": " + line);
+            for (Socket client : allClients) {
+                while (true) {
+                    String message = reader.readLine();
+                    if (message == null) break;
+                    if (message.isBlank()) continue;
+                    writer.write(userName + ": " + message);
+                    writer.write("\n");
+                    writer.flush();
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
