@@ -32,7 +32,7 @@ public class ChatServer {
 
             userName = reader.readLine();
 
-            sendMessage(reader, writer, userName);
+            sendMessage(reader, userName);
 
 
         } catch (IOException e) {
@@ -51,16 +51,18 @@ public class ChatServer {
         writer.flush();
     }
 
-    private static void sendMessage(BufferedReader reader, Writer writer, String userName) {
+    private static void sendMessage(BufferedReader reader, String userName) {
         try {
-            for (Socket client : allClients) {
-                while (true) {
-                    String message = reader.readLine();
-                    if (message == null) break;
-                    if (message.isBlank()) continue;
-                    writer.write(userName + ": " + message);
-                    writer.write("\n");
-                    writer.flush();
+            while (true) {
+                String message = reader.readLine();
+                if (message == null) break;
+                if (message.isBlank()) continue;
+
+                for (Socket client : allClients) {
+                    Writer messageWriter = new OutputStreamWriter(client.getOutputStream());
+                    messageWriter.write(userName + ": " + message);
+                    messageWriter.write("\n");
+                    messageWriter.flush();
                 }
             }
         } catch (IOException e) {
