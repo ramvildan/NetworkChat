@@ -8,13 +8,13 @@ import java.util.List;
 public class ChatServer {
 
     private static String userName;
-    private static final List<Socket> allClients = Collections.synchronizedList(new ArrayList<>());
+    private static final List<Socket> allClientsList = Collections.synchronizedList(new ArrayList<>());
 
     public static void main(String[] args) throws IOException {
         try (ServerSocket server = new ServerSocket(4451)) {
             while (true) {
                 Socket client = server.accept();
-                allClients.add(client);
+                allClientsList.add(client);
 
                 new Thread(() -> {
                     anotherClient(client);
@@ -25,14 +25,13 @@ public class ChatServer {
 
     private static void anotherClient(Socket client) {
         try {
-            Writer writer = new OutputStreamWriter(client.getOutputStream());
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(client.getOutputStream()));
             BufferedReader reader = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
             greetingsToAll(writer);
-
             userName = reader.readLine();
 
-            sendMessage(reader, userName);
+            sendMessage(reader, client, userName);
 
 
         } catch (IOException e) {
@@ -51,18 +50,20 @@ public class ChatServer {
         writer.flush();
     }
 
-    private static void sendMessage(BufferedReader reader, String userName) {
+    private static void sendMessage(BufferedReader massageReader, Socket client, String userName) {
         try {
             while (true) {
-                String message = reader.readLine();
+                String message = massageReader.readLine();
                 if (message == null) break;
                 if (message.isBlank()) continue;
 
-                for (Socket client : allClients) {
-                    Writer messageWriter = new OutputStreamWriter(client.getOutputStream());
-                    messageWriter.write(userName + ": " + message);
-                    messageWriter.write("\n");
-                    messageWriter.flush();
+                for (Socket user : allClientsList) {
+                    if (!user.equals(client)) {
+                        Writer messageWriter = new OutputStreamWriter(user.getOutputStream());
+                        messageWriter.write(userName + ": " + message);
+                        messageWriter.write("\n");
+                        messageWriter.flush();
+                    }
                 }
             }
         } catch (IOException e) {
