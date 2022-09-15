@@ -35,7 +35,7 @@ public class ChatServer {
 
                 allClientsList.add(client);
 
-                sendMassages(session, client, reader, writer);
+                sendMassages(session, client, reader);
 
 
             } catch (IOException e) {
@@ -57,7 +57,7 @@ public class ChatServer {
         }).start();
     }
 
-    private static void sendMassages(NewClientSession session, Socket client, BufferedReader reader, PrintWriter writer) {
+    private static void sendMassages(NewClientSession session, Socket client, BufferedReader reader) {
         try {
             while (true) {
                 String message = reader.readLine();
@@ -66,6 +66,7 @@ public class ChatServer {
 
                 for (Socket thisClient : allClientsList) {
                     if (!thisClient.equals(client)) {
+                        PrintWriter writer = new PrintWriter(thisClient.getOutputStream(), true, StandardCharsets.UTF_8);
                         writer.println(session.getLogin() + ": " + message);
                     }
                 }
