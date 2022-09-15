@@ -8,7 +8,7 @@ import java.util.List;
 
 public class ChatServer {
 
-    private static final List<NewClientSession> allSessionsList = Collections.synchronizedList(new ArrayList<>());
+    private static final List<Socket> allClientsList = Collections.synchronizedList(new ArrayList<>());
     private final MassageList massages = new MassageList();
 
     public static void main(String[] args) throws IOException {
@@ -33,9 +33,9 @@ public class ChatServer {
 
                 enterLogin(session, reader, writer);
 
-                allSessionsList.add(session);
+                allClientsList.add(client);
 
-                sendMassages(session, reader, writer);
+                sendMassages(session, client, reader, writer);
 
 
             } catch (IOException e) {
@@ -49,7 +49,7 @@ public class ChatServer {
                     if (writer != null) {
                         writer.close();
                     }
-                    allSessionsList.remove(session);
+                    allClientsList.remove(client);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -57,15 +57,15 @@ public class ChatServer {
         }).start();
     }
 
-    private static void sendMassages(NewClientSession session, BufferedReader reader, PrintWriter writer) {
+    private static void sendMassages(NewClientSession session, Socket client, BufferedReader reader, PrintWriter writer) {
         try {
             while (true) {
                 String message = reader.readLine();
                 if (message == null) break;
                 if (message.isBlank()) continue;
 
-                for (NewClientSession thisSession : allSessionsList) {
-                    if (thisSession.equals(session)) {
+                for (Socket thisClient : allClientsList) {
+                    if (!thisClient.equals(client)) {
                         writer.println(session.getLogin() + ": " + message);
                     }
                 }
