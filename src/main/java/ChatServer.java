@@ -31,12 +31,15 @@ public class ChatServer {
                 reader = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8));
                 writer = new PrintWriter(client.getOutputStream(), true, StandardCharsets.UTF_8);
 
-                enterLogin(session, reader, writer);
+                String login = registrationLogin(reader, writer);
 
-                allClientsList.add(client);
+                if (login != null) {
+//                sendHistory();
 
-                sendMassages(session, client, reader);
+                    allClientsList.add(client);
 
+                    sendMassages(session, client, reader);
+                }
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -75,19 +78,21 @@ public class ChatServer {
             e.printStackTrace();
         }
     }
-    private static void enterLogin(NewClientSession session, BufferedReader reader, PrintWriter writer) throws IOException {
+
+    private static String registrationLogin(BufferedReader reader, PrintWriter writer) throws IOException {
         do {
             writer.println("Hello and welcome to MyChat! Please enter your login:");
             String clientResponse = reader.readLine();
             if (clientResponse == null) {
-                throw new IOException();
+                break;
             }
             if (!clientResponse.isBlank() && clientResponse.length() <= 10) {
-                session.setLogin(clientResponse);
-                break;
+                return clientResponse;
             }
 
             writer.println("This login is illegal, please try again...");
         } while (true);
+
+        return null;
     }
 }

@@ -39,7 +39,7 @@ public class NewClientSession {
 
     private static void socketReader(Socket socket) {
         new Thread(() -> {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8))){
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8))) {
                 while (true) {
                     String line = reader.readLine();
                     if (line == null) break;
