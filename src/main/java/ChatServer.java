@@ -1,4 +1,7 @@
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -8,69 +11,70 @@ import java.util.List;
 
 public class ChatServer {
 
-    private static final List<Socket> allClientsList = Collections.synchronizedList(new ArrayList<>());
-    private final MassageList massages = new MassageList();
+    private static final List<NewClientSession> sessionsList = Collections.synchronizedList(new ArrayList<>());
+    private static final DataBase db = new DataBase();
 
     public static void main(String[] args) throws IOException {
         try (ServerSocket server = new ServerSocket(4451)) {
             while (true) {
                 Socket client = server.accept();
 
-                anotherClient(client);
+                enterAnotherClient(client);
             }
         }
     }
 
-    public static void anotherClient(Socket client) {
+    public static void enterAnotherClient(Socket connection) {
         new Thread(() -> {
             NewClientSession session = new NewClientSession();
-            BufferedReader reader = null;
-            PrintWriter writer = null;
 
-            try {
-                reader = new BufferedReader(new InputStreamReader(client.getInputStream(), StandardCharsets.UTF_8));
-                writer = new PrintWriter(client.getOutputStream(), true, StandardCharsets.UTF_8);
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8));
+                 PrintWriter writer = new PrintWriter(connection.getOutputStream(), true, StandardCharsets.UTF_8)) {
 
                 String login = registrationLogin(reader, writer);
 
-                if (login != null) {
-//                sendHistory();
-
-                    allClientsList.add(client);
-
-                    sendMassages(session, client, reader);
-                }
+                session.setLogin(login);
+                session.setConnection(connection);
+                sendHistory(session);
+                sessionsList.add(session);
+                workOnMessage(session, reader);
 
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
-                try {
-                    client.close();
-                    if (reader != null) {
-                        reader.close();
-                    }
-                    if (writer != null) {
-                        writer.close();
-                    }
-                    allClientsList.remove(client);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                sessionsList.remove(session);
+                closeSocket(connection);
             }
         }).start();
     }
 
-    private static void sendMassages(NewClientSession session, Socket client, BufferedReader reader) {
+    private static void sendHistory(NewClientSession newClientSession) throws IOException {
+        System.out.println("send history for user:" + newClientSession.getLogin());
+
+        for (Message message : db.getMessages()) {
+            PrintWriter writer = new PrintWriter(newClientSession.getConnection().getOutputStream(), true, StandardCharsets.UTF_8);
+            if (!message.getUsername().equals(newClientSession.getLogin())) {
+                writer.println(message.toString());
+            } else {
+                writer.println(message.getText());
+            }
+        }
+    }
+
+    private static void workOnMessage(NewClientSession session, BufferedReader reader) {
         try {
             while (true) {
                 String message = reader.readLine();
                 if (message == null) break;
                 if (message.isBlank()) continue;
 
-                for (Socket thisClient : allClientsList) {
-                    if (!thisClient.equals(client)) {
-                        PrintWriter writer = new PrintWriter(thisClient.getOutputStream(), true, StandardCharsets.UTF_8);
-                        writer.println(session.getLogin() + ": " + message);
+                String username = session.getLogin();
+                db.addMessage(message, username);
+
+                for (NewClientSession clientSession : sessionsList) {
+                    if (!clientSession.equals(session)) {
+                        PrintWriter writer = new PrintWriter(clientSession.getConnection().getOutputStream(), true, StandardCharsets.UTF_8);
+                        writer.println(username + ": " + message);
                     }
                 }
             }
@@ -83,16 +87,22 @@ public class ChatServer {
         do {
             writer.println("Hello and welcome to MyChat! Please enter your login:");
             String clientResponse = reader.readLine();
-            if (clientResponse == null) {
-                break;
-            }
-            if (!clientResponse.isBlank() && clientResponse.length() <= 10) {
-                return clientResponse;
+
+            if (clientResponse.isEmpty() || clientResponse.isBlank() || clientResponse.length() >= 10) {
+                writer.println("This login is illegal, please try again...");
+                continue;
             }
 
-            writer.println("This login is illegal, please try again...");
+            return clientResponse;
+
         } while (true);
+    }
 
-        return null;
+    private static void closeSocket(Socket client) {
+        try {
+            client.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
